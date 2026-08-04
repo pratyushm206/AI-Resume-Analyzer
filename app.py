@@ -67,7 +67,7 @@ if st.button("Analyze Resume"):
     with c2:
         st.metric(
             "📊 Matching Skills",
-            len(analysis["matching_skills"])
+            len(analysis.get("matching_skills", []))
         )
 
     st.divider()
@@ -78,19 +78,44 @@ if st.button("Analyze Resume"):
 
         st.subheader("✅ Matching Skills")
 
-        for skill in analysis["matching_skills"]:
-            st.success(skill)
+        matching_skills = analysis.get("matching_skills", [])
+
+        if matching_skills:
+            for skill in matching_skills:
+                st.success(skill)
+        else:
+            st.info("No matching skills found.")
 
     with right:
 
         st.subheader("❌ Missing Skills")
 
-        for skill in analysis["missing_skills"]:
-            st.error(skill)
+        missing_skills = analysis.get("missing_skills", [])
+
+        if missing_skills:
+            for skill in missing_skills:
+                st.error(skill)
+        else:
+            st.info("No missing skills identified.")
 
     st.divider()
 
     st.subheader("💡 Suggestions")
 
-    for suggestion in analysis["suggestions"]:
-        st.info(suggestion)
+    suggestions = analysis.get("suggestions", [])
+
+    if suggestions:
+        for suggestion in suggestions:
+            st.info(suggestion)
+    else:
+        st.info("No suggestions available.")
+
+    st.divider()
+
+    st.subheader("👨‍💼 Recruiter Verdict")
+
+    st.markdown(
+        f"""
+> {analysis.get("recruiter_verdict", "No recruiter verdict available.")}
+"""
+    )
