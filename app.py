@@ -10,7 +10,17 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📄 AI Resume Analyzer")
+st.markdown(
+    """
+# 📄 AI Resume Analyzer
+
+### AI-powered ATS Resume Screening System
+
+Upload a resume, compare it against a job description, and receive an AI-powered recruiter analysis.
+
+---
+"""
+)
 
 uploaded_file = st.file_uploader(
     "Upload Resume (PDF)",
@@ -43,31 +53,47 @@ if st.button("Analyze Resume"):
         resume_text += page.get_text()
 
     with st.spinner("Analyzing Resume..."):
-
-        score = calculate_match_score(
-            resume_text,
-            job_description
+        score = float(
+            calculate_match_score(
+                resume_text,
+                job_description
+            )
         )
+
+        score = max(0.0, min(100.0, score))
 
         analysis = analyze_resume_with_gemini(
             resume_text,
             job_description
         )
 
-    st.success("Analysis Complete")
+    st.toast("Analysis completed successfully!", icon="✅")
 
-    c1, c2 = st.columns(2)
+    score_col, stats_col = st.columns([2, 1])
 
-    with c1:
+    with score_col:
+
+        st.subheader("🎯 ATS Match Score")
+
         st.metric(
-            "🎯 Match Score",
-            f"{score}%"
+        label="Overall Match",
+        value=f"{score:.1f}%"
+    )
+
+    st.progress(score / 100)
+
+    with stats_col:
+
+        st.subheader("📊 Summary")
+
+        st.metric(
+            "Matching Skills",
+            len(analysis.get("matching_skills", []))
         )
 
-    with c2:
         st.metric(
-            "📊 Matching Skills",
-            len(analysis.get("matching_skills", []))
+            "Missing Skills",
+            len(analysis.get("missing_skills", []))
         )
 
     st.divider()
