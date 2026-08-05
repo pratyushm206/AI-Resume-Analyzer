@@ -4,24 +4,28 @@ import fitz
 from ai_engine import calculate_match_score
 from gemini_engine import analyze_resume_with_gemini
 
+from frontend.styles import load_css
+from frontend import components
+
 st.set_page_config(
     page_title="AI Resume Analyzer",
     page_icon="📄",
     layout="wide"
 )
 
-st.markdown(
-    """
-# 📄 AI Resume Analyzer
+# -----------------------------
+# Load CSS
+# -----------------------------
+st.markdown(load_css(), unsafe_allow_html=True)
 
-### AI-powered ATS Resume Screening System
+# -----------------------------
+# Hero
+# -----------------------------
+components.hero()
 
-Upload a resume, compare it against a job description, and receive an AI-powered recruiter analysis.
-
----
-"""
-)
-
+# -----------------------------
+# Inputs
+# -----------------------------
 uploaded_file = st.file_uploader(
     "Upload Resume (PDF)",
     type=["pdf"]
@@ -32,7 +36,10 @@ job_description = st.text_area(
     height=250
 )
 
-if st.button("Analyze Resume"):
+# -----------------------------
+# Analyze
+# -----------------------------
+if st.button("🚀 Analyze Resume", use_container_width=True):
 
     if uploaded_file is None:
         st.warning("Upload a resume.")
@@ -53,6 +60,7 @@ if st.button("Analyze Resume"):
         resume_text += page.get_text()
 
     with st.spinner("Analyzing Resume..."):
+
         score = float(
             calculate_match_score(
                 resume_text,
@@ -69,79 +77,53 @@ if st.button("Analyze Resume"):
 
     st.toast("Analysis completed successfully!", icon="✅")
 
-    score_col, stats_col = st.columns([2, 1])
-
-    with score_col:
-
-        st.subheader("🎯 ATS Match Score")
-
-        st.metric(
-        label="Overall Match",
-        value=f"{score:.1f}%"
+    # -----------------------------
+    # Dashboard
+    # -----------------------------
+    components.score_dashboard(
+        score=score,
+        matching_count=len(analysis.get("matching_skills", [])),
+        missing_count=len(analysis.get("missing_skills", []))
     )
-
-    st.progress(score / 100)
-
-    with stats_col:
-
-        st.subheader("📊 Summary")
-
-        st.metric(
-            "Matching Skills",
-            len(analysis.get("matching_skills", []))
-        )
-
-        st.metric(
-            "Missing Skills",
-            len(analysis.get("missing_skills", []))
-        )
 
     st.divider()
 
+    # -----------------------------
+    # Skills
+    # -----------------------------
     left, right = st.columns(2)
 
     with left:
-
-        st.subheader("✅ Matching Skills")
-
-        matching_skills = analysis.get("matching_skills", [])
-
-        if matching_skills:
-            for skill in matching_skills:
-                st.success(skill)
-        else:
-            st.info("No matching skills found.")
+        components.skill_section(
+            "✅ Matching Skills",
+            analysis.get("matching_skills", []),
+            positive=True
+        )
 
     with right:
-
-        st.subheader("❌ Missing Skills")
-
-        missing_skills = analysis.get("missing_skills", [])
-
-        if missing_skills:
-            for skill in missing_skills:
-                st.error(skill)
-        else:
-            st.info("No missing skills identified.")
+        components.skill_section(
+            "❌ Missing Skills",
+            analysis.get("missing_skills", []),
+            positive=False
+        )
 
     st.divider()
 
-    st.subheader("💡 Suggestions")
-
-    suggestions = analysis.get("suggestions", [])
-
-    if suggestions:
-        for suggestion in suggestions:
-            st.info(suggestion)
-    else:
-        st.info("No suggestions available.")
+    # -----------------------------
+    # Suggestions
+    # -----------------------------
+    components.suggestions_card(
+        analysis.get("suggestions", [])
+    )
 
     st.divider()
 
-    st.subheader("👨‍💼 Recruiter Verdict")
-
-    st.markdown(
-        f"""
-> {analysis.get("recruiter_verdict", "No recruiter verdict available.")}
-"""
+    # -----------------------------
+    # Recruiter Verdict
+    # -----------------------------
+    components.verdict_card(
+        analysis.get(
+            "recruiter_verdict",
+            "No recruiter verdict available."
+        )
     )
