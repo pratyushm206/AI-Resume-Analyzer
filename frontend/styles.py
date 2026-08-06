@@ -436,6 +436,65 @@ hr, [data-testid="stDivider"]{
 }
 
 /* ===========================
+   SECTION BREAKDOWN BARS
+=========================== */
+
+.section-bar-row{
+    margin-bottom: 16px;
+}
+.section-bar-row:last-child{
+    margin-bottom: 0;
+}
+
+.section-bar-top{
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+}
+
+.section-bar-label{
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+}
+
+.section-bar-value{
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.section-bar-track{
+    height: 8px;
+    width: 100%;
+    background: var(--border-soft);
+    border-radius: 100px;
+    overflow: hidden;
+}
+
+.section-bar-fill{
+    height: 100%;
+    border-radius: 100px;
+}
+.section-bar-fill.status-strong{ background: var(--success); }
+.section-bar-fill.status-partial{ background: var(--info); }
+.section-bar-fill.status-weak{ background: var(--danger); }
+
+/* ===========================
+   COVER LETTER
+=========================== */
+
+.cover-letter-text{
+    font-family: var(--sans);
+    font-size: 14.5px;
+    line-height: 1.85;
+    color: var(--text-muted);
+    white-space: normal;
+}
+
+/* ===========================
    VERDICT
 =========================== */
 
