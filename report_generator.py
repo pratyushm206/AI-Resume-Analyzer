@@ -1,0 +1,174 @@
+from datetime import datetime
+from io import BytesIO
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+    ListFlowable,
+    ListItem,
+)
+
+BRAND_ACCENT = colors.HexColor("#7c6a3a")
+SUCCESS = colors.HexColor("#2f7a56")
+DANGER = colors.HexColor("#a8433d")
+MUTED = colors.HexColor("#5c5c5c")
+DARK = colors.HexColor("#1a1a1a")
+
+
+def _status_label(score: float) -> str:
+    if score >= 75:
+        return "Strong Match"
+    if score >= 45:
+        return "Partial Match"
+    return "Weak Match"
+
+
+def generate_pdf_report(
+    resume_filename: str,
+    score: float,
+    matching_skills: list,
+    missing_skills: list,
+    suggestions: list,
+    verdict: str,
+    section_scores: dict | None = None,
+) -> bytes:
+    """
+    Builds a clean, printable PDF summary of an analysis and returns it
+    as raw bytes, so it can be handed straight to st.download_button
+    without writing anything to disk.
+    """
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        topMargin=0.75 * inch,
+        bottomMargin=0.75 * inch,
+        leftMargin=0.75 * inch,
+        rightMargin=0.75 * inch,
+    )
+
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        "ReportTitle", parent=styles["Title"], textColor=DARK, spaceAfter=2
+    )
+    meta_style = ParagraphStyle(
+        "Meta", parent=styles["Normal"], textColor=MUTED, fontSize=9, spaceAfter=18
+    )
+    heading_style = ParagraphStyle(
+        "SectionHeading",
+        parent=styles["Heading2"],
+        textColor=DARK,
+        spaceBefore=16,
+        spaceAfter=8,
+    )
+    body_style = ParagraphStyle(
+        "Body", parent=styles["Normal"], textColor=DARK, leading=15
+    )
+    score_style = ParagraphStyle(
+        "ScoreBig",
+        parent=styles["Title"],
+        fontSize=40,
+        textColor=BRAND_ACCENT,
+        spaceAfter=0,
+    )
+
+    story = []
+
+    story.append(Paragraph("AI Resume Analyzer &mdash; Report", title_style))
+    story.append(
+        Paragraph(
+            f"Resume: {resume_filename} &nbsp;&bull;&nbsp; "
+            f"Generated: {datetime.now().strftime('%d %b %Y, %I:%M %p')}",
+            meta_style,
+        )
+    )
+
+    story.append(Paragraph(f"{score:.1f}%", score_style))
+    story.append(
+        Paragraph(f"ATS Match Score &mdash; {_status_label(score)}", body_style)
+    )
+
+    if section_scores:
+        story.append(Paragraph("Section Breakdown", heading_style))
+        rows = [["Section", "Score"]]
+        for name, sec_score in section_scores.items():
+            rows.append([name, f"{sec_score:.0f}%"])
+
+        table = Table(rows, colWidths=[3.5 * inch, 1.5 * inch])
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#eeeeee")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), DARK),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 10),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                    ("TOPPADDING", (0, 0), (-1, -1), 8),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#dddddd")),
+                ]
+            )
+        )
+        story.append(table)
+
+    if matching_skills:
+        story.append(Paragraph("Matching Skills", heading_style))
+        story.append(
+            ListFlowable(
+                [
+                    ListItem(
+                        Paragraph(skill, body_style), bulletColor=SUCCESS
+                    )
+                    for skill in matching_skills
+                ],
+                bulletType="bullet",
+            )
+        )
+
+    if missing_skills:
+        story.append(Paragraph("Missing Skills", heading_style))
+        story.append(
+            ListFlowable(
+                [
+                    ListItem(Paragraph(skill, body_style), bulletColor=DANGER)
+                    for skill in missing_skills
+                ],
+                bulletType="bullet",
+            )
+        )
+
+    if suggestions:
+        story.append(Paragraph("Suggestions", heading_style))
+        story.append(
+            ListFlowable(
+                [
+                    ListItem(Paragraph(s, body_style), bulletColor=BRAND_ACCENT)
+                    for s in suggestions
+                ],
+                bulletType="1",
+            )
+        )
+
+    if verdict:
+        story.append(Paragraph("Recruiter Verdict", heading_style))
+        story.append(Paragraph(verdict, body_style))
+
+    story.append(Spacer(1, 24))
+    story.append(
+        Paragraph(
+            "Generated by AI Resume Analyzer.",
+            meta_style,
+        )
+    )
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
