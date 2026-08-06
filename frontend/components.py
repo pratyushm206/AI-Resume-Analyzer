@@ -1,3 +1,5 @@
+import html as html_lib
+
 import streamlit as st
 
 
@@ -147,6 +149,80 @@ def suggestions_card(suggestions):
 """
 
     render_html(html)
+
+
+def section_breakdown(section_scores: dict):
+
+    if not section_scores:
+        return
+
+    rows = ""
+
+    for name, score in section_scores.items():
+        _, status_class = _score_status(score)
+        rows += f"""
+        <div class="section-bar-row">
+            <div class="section-bar-top">
+                <span class="section-bar-label">{name}</span>
+                <span class="section-bar-value">{score:.0f}%</span>
+            </div>
+            <div class="section-bar-track">
+                <div class="section-bar-fill {status_class}" style="width:{score}%;"></div>
+            </div>
+        </div>
+"""
+
+    html = f"""
+<div class="section">
+    <div class="card">
+        <div class="card-title">
+            <span class="tag-bracket tip">SECTIONS</span>
+            Section Breakdown
+        </div>
+        {rows}
+    </div>
+</div>
+"""
+
+    render_html(html)
+
+
+def cover_letter_card(text: str):
+
+    safe_text = html_lib.escape(text).replace("\n", "<br>")
+
+    render_html(f"""
+<div class="section">
+    <div class="card">
+        <div class="card-title tag-verdict">
+            <span class="tag-bracket verdict">LETTER</span>
+            Cover Letter
+        </div>
+        <div class="cover-letter-text">
+            {safe_text}
+        </div>
+    </div>
+</div>
+""")
+
+
+def tailored_resume_card(text: str):
+
+    safe_text = html_lib.escape(text).replace("\n", "<br>")
+
+    render_html(f"""
+<div class="section">
+    <div class="card">
+        <div class="card-title tag-verdict">
+            <span class="tag-bracket verdict">TAILORED</span>
+            Resume Rewritten for This JD
+        </div>
+        <div class="cover-letter-text">
+            {safe_text}
+        </div>
+    </div>
+</div>
+""")
 
 
 def verdict_card(verdict):
