@@ -1,6 +1,6 @@
 # 📄 AI Resume Analyzer
 
-An AI-powered Resume Analyzer that compares a resume with a Job Description using **Sentence Transformers** for semantic similarity and **Google Gemini** for intelligent skill analysis.
+An AI-powered ATS Resume Analyzer that scores a resume against a Job Description using a **deterministic, explainable hybrid scoring engine**, then layers **Google Gemini** on top for qualitative feedback — matching/missing skills, suggestions, and a recruiter-style verdict. It can also generate a tailored cover letter and rewrite the resume itself for a specific JD.
 
 ---
 
@@ -8,12 +8,17 @@ An AI-powered Resume Analyzer that compares a resume with a Job Description usin
 
 - 📄 Upload Resume (PDF)
 - 📝 Paste Job Description
-- 🧠 Semantic Resume-JD Matching
-- 🎯 Resume Match Score
-- ✅ Matching Skills
-- ❌ Missing Skills
-- 💡 Improvement Suggestions
-- ⚡ Fast Streamlit Interface
+- 🎯 Hybrid ATS Match Score — deterministic and reproducible (same resume + same JD → same score, every time)
+- 🔍 Explainable "Why This Score?" breakdown — semantic relevance, skill match, keyword coverage, experience match, and section relevance, each shown with its weight
+- 📊 Section-wise Resume Scoring (Summary, Education, Projects, Skills, Certifications)
+- ✅ Matching Skills / ❌ Missing Skills
+- 💡 AI-generated Improvement Suggestions
+- 🧑‍💼 AI-generated Recruiter Verdict
+- ⬇️ Downloadable PDF Analysis Report
+- ✉️ AI-generated Cover Letter
+- 📝 AI Resume Tailoring — rewrites the resume for a specific JD without inventing skills or experience
+- 💾 Session-persisted results across Streamlit reruns
+- 🖤 Custom dark, terminal-inspired dashboard UI
 
 ---
 
@@ -21,20 +26,29 @@ An AI-powered Resume Analyzer that compares a resume with a Job Description usin
 
 ### Frontend
 - Streamlit
+- Custom CSS + component library (`frontend/styles.py`, `frontend/components.py`)
+
+### ATS Scoring Engine (`ats_engine.py`)
+A deterministic scoring pipeline — this is what actually produces the numeric score. Gemini is used only for interpretation and prose, never for the number itself, so the score stays reproducible.
+
+| Component | Weight | Method |
+|---|---|---|
+| Semantic Relevance | 30% | Sentence Transformers embeddings + cosine similarity |
+| Skill Match | 30% | Curated skill vocabulary with alias/variant matching (e.g. "React", "React.js", "reactjs" → one canonical skill) |
+| Keyword Coverage | 15% | Frequency-ranked JD keyword overlap |
+| Experience Match | 15% | Regex-based extraction of required vs. candidate years of experience |
+| Section Relevance | 10% | Per-section resume scoring (via `resume_sections.py`) |
 
 ### AI / NLP
-- Sentence Transformers
-- Google Gemini API
-
-### Machine Learning
-- all-MiniLM-L6-v2
-- Cosine Similarity (Scikit-learn)
+- Sentence Transformers (`all-MiniLM-L6-v2`)
+- Google Gemini API — matching/missing skills, suggestions, recruiter verdict, cover letter generation, resume tailoring
 
 ### Backend
 - Python
 
 ### PDF Processing
-- PyMuPDF
+- PyMuPDF — resume text extraction
+- ReportLab — analysis report generation
 
 ---
 
@@ -44,27 +58,32 @@ An AI-powered Resume Analyzer that compares a resume with a Job Description usin
 Resume PDF
       │
       ▼
-PyMuPDF
+   PyMuPDF
       │
 Extracted Text
       │
-      ├──────────────┐
-      │              │
-      ▼              ▼
-SentenceTransformer  Job Description
-      │              │
-      └──────┬───────┘
-             ▼
-      Cosine Similarity
-             │
-      Resume Match Score
-             │
-             ▼
- Google Gemini Analysis
-             │
-             ├── Matching Skills
-             ├── Missing Skills
-             └── Suggestions
+      ├─────────────────────────────┐
+      │                             │
+      ▼                             ▼
+  ATS Engine                Google Gemini
+  (deterministic)            (qualitative)
+      │                             │
+      ├── Semantic Relevance        ├── Matching Skills
+      ├── Skill Match                ├── Missing Skills
+      ├── Keyword Coverage           ├── Suggestions
+      ├── Experience Match           └── Recruiter Verdict
+      ├── Section Relevance
+      │
+      ▼
+ Weighted ATS Score
+ + Explainable Breakdown
+      │
+      ▼
+   Dashboard UI
+      │
+      ├── PDF Report (ReportLab)
+      ├── Cover Letter (Gemini)
+      └── Tailored Resume (Gemini)
 ```
 
 ---
@@ -74,9 +93,17 @@ SentenceTransformer  Job Description
 ```
 AI-Resume-Analyzer/
 │
-├── app.py
-├── ai_engine.py
-├── gemini_engine.py
+├── app.py                     # Streamlit entry point
+├── ats_engine.py               # Deterministic hybrid ATS scoring engine
+├── ai_engine.py                 # Sentence-transformers model + cosine similarity (used by ats_engine and resume_sections)
+├── gemini_engine.py            # Gemini-based qualitative analysis
+├── cover_letter_engine.py      # Gemini-based cover letter generation
+├── resume_tailor_engine.py     # Gemini-based resume tailoring
+├── resume_sections.py          # Resume section splitting + per-section scoring
+├── report_generator.py         # PDF report generation (ReportLab)
+├── frontend/
+│   ├── styles.py                # CSS
+│   └── components.py            # UI components
 ├── requirements.txt
 ├── .env.example
 ├── .gitignore
@@ -139,24 +166,16 @@ streamlit run app.py
 
 ---
 
-## 🚀 Current Features
+## 🔮 Roadmap
 
-- Resume Parsing
-- Semantic Similarity Score
-- AI-powered Skill Matching
-- Missing Skill Detection
-- Resume Improvement Suggestions
+Not yet built — planned next, roughly in priority order:
 
----
-
-## 🔮 Upcoming Features
-
-- ATS Score
-- Recruiter Verdict
-- Resume Section Analysis
-- Beautiful Dashboard
-- Resume Improvement Report
-- Deployment on Streamlit Cloud
+- ATS compatibility / resume format analysis (formatting, structure, ATS-parseability, independent of any specific JD)
+- PDF/DOCX export for the tailored resume and cover letter (currently `.txt` only)
+- Re-analysis of the tailored resume with a before/after score comparison
+- Expanded skill vocabulary coverage (the curated skill list in `ats_engine.py` grows as new job descriptions surface terms it doesn't yet recognize)
+- Automated tests (`ats_engine.py` scoring, section splitting, PDF report generation, Gemini response parsing)
+- Deployment (Streamlit Cloud or similar)
 
 ---
 
