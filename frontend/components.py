@@ -187,6 +187,122 @@ def section_breakdown(section_scores: dict):
     render_html(html)
 
 
+_BREAKDOWN_LABELS = {
+    "semantic_relevance": "Semantic Relevance",
+    "skill_match": "Skill Match",
+    "keyword_coverage": "Keyword Coverage",
+    "experience_match": "Experience Match",
+    "section_relevance": "Section Relevance",
+}
+
+
+def why_score_card(ats_result: dict):
+    """
+    Explainable breakdown behind the overall ATS score: the weighted
+    component scores, the top skills driving the score up/down, and
+    (when the JD specifies one) the required-vs-candidate experience gap.
+
+    Expects the dict shape returned by ats_engine.analyze_ats_match().
+    """
+
+    breakdown = ats_result.get("breakdown", {})
+    weights = ats_result.get("weights", {})
+
+    rows = ""
+    for key, label in _BREAKDOWN_LABELS.items():
+        if key not in breakdown:
+            continue
+        score = breakdown[key]
+        weight_pct = int(weights.get(key, 0) * 100)
+        _, status_class = _score_status(score)
+        rows += f"""
+        <div class="section-bar-row">
+            <div class="section-bar-top">
+                <span class="section-bar-label">{label} <span class="card-empty">({weight_pct}% weight)</span></span>
+                <span class="section-bar-value">{score:.1f}%</span>
+            </div>
+            <div class="section-bar-track">
+                <div class="section-bar-fill {status_class}" style="width:{score}%;"></div>
+            </div>
+        </div>
+"""
+
+    boosters = ats_result.get("score_boosters", [])
+    blockers = ats_result.get("score_blockers", [])
+
+    boosters_html = ""
+    if boosters:
+        for skill in boosters:
+            boosters_html += f"""
+        <div class="diff-row plus">
+            <span class="diff-marker">+</span>
+            <span class="diff-text">{skill}</span>
+        </div>
+"""
+    else:
+        boosters_html = """<p class="card-empty">No matched requirements detected.</p>"""
+
+    blockers_html = ""
+    if blockers:
+        for skill in blockers:
+            blockers_html += f"""
+        <div class="diff-row minus">
+            <span class="diff-marker">-</span>
+            <span class="diff-text">{skill}</span>
+        </div>
+"""
+    else:
+        blockers_html = """<p class="card-empty">No missing requirements detected.</p>"""
+
+    experience = ats_result.get("experience", {})
+    required_years = experience.get("required_years")
+    candidate_years = experience.get("candidate_years")
+
+    experience_line = ""
+    if required_years is not None:
+        candidate_display = (
+            f"{candidate_years:.0f} years found on resume"
+            if candidate_years is not None
+            else "no explicit years-of-experience figure found on resume"
+        )
+        experience_line = f"""
+        <p class="card-empty" style="margin-top:14px;">
+            JD requires {required_years:.0f}+ years of experience &mdash; {candidate_display}.
+        </p>
+"""
+
+    render_html(f"""
+<div class="section">
+    <div class="card">
+        <div class="card-title">
+            <span class="tag-bracket tip">SCORE</span>
+            Why This Score?
+        </div>
+        {rows}
+        {experience_line}
+    </div>
+</div>
+<div class="section">
+    <div style="display:flex; gap:24px; flex-wrap:wrap;">
+        <div class="card" style="flex:1; min-width:260px;">
+            <div class="card-title tag-ok">
+                <span class="tag-bracket ok">OK</span>
+                Score Boosters
+            </div>
+            {boosters_html}
+        </div>
+        <div class="card" style="flex:1; min-width:260px;">
+            <div class="card-title tag-miss">
+                <span class="tag-bracket miss">MISS</span>
+                Score Blockers
+            </div>
+            {blockers_html}
+        </div>
+    </div>
+</div>
+""")
+
+
 def cover_letter_card(text: str):
 
     safe_text = html_lib.escape(text).replace("\n", "<br>")

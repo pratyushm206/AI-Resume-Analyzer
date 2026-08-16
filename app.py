@@ -1,7 +1,7 @@
 import streamlit as st
 import fitz
 
-from ai_engine import calculate_match_score
+from ats_engine import analyze_ats_match
 from gemini_engine import analyze_resume_with_gemini
 from cover_letter_engine import generate_cover_letter
 from resume_tailor_engine import generate_tailored_resume
@@ -65,22 +65,20 @@ if st.button("🚀 Analyze Resume", use_container_width=True):
 
     with st.spinner("Analyzing Resume..."):
 
-        score = float(
-            calculate_match_score(
-                resume_text,
-                job_description
-            )
-        )
+        sections = split_resume_sections(resume_text)
+        section_scores = score_sections(sections, job_description)
 
-        score = max(0.0, min(100.0, score))
+        ats_result = analyze_ats_match(
+            resume_text,
+            job_description,
+            section_scores=section_scores,
+        )
+        score = ats_result["overall_score"]
 
         analysis = analyze_resume_with_gemini(
             resume_text,
             job_description
         )
-
-        sections = split_resume_sections(resume_text)
-        section_scores = score_sections(sections, job_description)
 
     st.toast("Analysis completed successfully!", icon="✅")
 
@@ -92,6 +90,7 @@ if st.button("🚀 Analyze Resume", use_container_width=True):
     st.session_state["resume_filename"] = uploaded_file.name
     st.session_state["job_description"] = job_description
     st.session_state["score"] = score
+    st.session_state["ats_result"] = ats_result
     st.session_state["analysis"] = analysis
     st.session_state["section_scores"] = section_scores
     st.session_state.pop("cover_letter", None)
@@ -103,6 +102,7 @@ if st.button("🚀 Analyze Resume", use_container_width=True):
 if "analysis" in st.session_state:
 
     score = st.session_state["score"]
+    ats_result = st.session_state["ats_result"]
     analysis = st.session_state["analysis"]
     section_scores = st.session_state["section_scores"]
 
@@ -114,6 +114,12 @@ if "analysis" in st.session_state:
         matching_count=len(analysis.get("matching_skills", [])),
         missing_count=len(analysis.get("missing_skills", []))
     )
+
+    # -----------------------------
+    # Why this score? (deterministic breakdown from ats_engine)
+    # -----------------------------
+    st.divider()
+    components.why_score_card(ats_result)
 
     # -----------------------------
     # Section breakdown
