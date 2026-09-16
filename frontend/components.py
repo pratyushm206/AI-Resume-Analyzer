@@ -1,11 +1,23 @@
+import base64
 import html as html_lib
+from pathlib import Path
 
 import streamlit as st
+
+_ASSET_DIR = Path(__file__).resolve().parent / "assets"
+_LOGO_PATH = _ASSET_DIR / "logo.png"
 
 
 def render_html(html: str):
     lines = [line.strip() for line in html.strip("\n").split("\n")]
     st.markdown("\n".join(lines), unsafe_allow_html=True)
+
+
+def _logo_data_uri():
+    if not _LOGO_PATH.exists():
+        return ""
+    encoded = base64.b64encode(_LOGO_PATH.read_bytes()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
 
 
 def _score_status(score):
@@ -60,11 +72,17 @@ def score_gauge_html(score, label=None, note=None, display_value=None, preview=F
 
 
 def hero():
+    logo_src = _logo_data_uri()
+    logo_html = (
+        f'<img class="brand-logo" src="{logo_src}" alt="AI Resume Analyzer logo">'
+        if logo_src
+        else '<span class="mark-dot"></span>'
+    )
     render_html(f"""
 <div class="site-top">
     <div class="mark">
-        <span class="mark-dot"></span>
-        <span>Resume Analyzer</span>
+        {logo_html}
+        <span class="brand-text">AI Resume Analyzer</span>
         <span class="mark-sub">/ scan engine</span>
     </div>
 </div>
@@ -332,3 +350,62 @@ def tailored_resume_card(text: str):
 
 def empty_state(message):
     render_html(f'<p class="card-empty">{html_lib.escape(message)}</p>')
+
+
+def site_footer():
+    logo_src = _logo_data_uri()
+    logo_html = (
+        f'<img class="footer-logo" src="{logo_src}" alt="AI Resume Analyzer logo">'
+        if logo_src
+        else '<span class="footer-logo-fallback"></span>'
+    )
+    render_html(f"""
+<footer class="site-footer">
+    <div class="footer-main">
+        <div class="footer-brand">
+            <div class="footer-brand-row">
+                {logo_html}
+                <span class="footer-name">AI Resume Analyzer</span>
+            </div>
+            <p>Deterministic scoring engine · Gemini used for prose only, never for the number.</p>
+        </div>
+        <nav class="footer-links" aria-label="Footer links">
+            <p class="footer-label">Connect</p>
+            <a href="mailto:pratyushm206@gmail.com">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 6h16v12H4z"/>
+                    <path d="m4 7 8 6 8-6"/>
+                </svg>
+                <span>pratyushm206@gmail.com</span>
+            </a>
+            <a href="https://github.com/pratyushm206" target="_blank" rel="noopener noreferrer">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 2.8a9.2 9.2 0 0 0-2.9 17.9c.5.1.7-.2.7-.5v-1.9c-2.9.6-3.5-1.2-3.5-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.6 1.1 1.6 1.1.9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.3-.3-4.7-1.2-4.7-5.1 0-1.1.4-2.1 1.1-2.8-.1-.3-.5-1.3.1-2.8 0 0 .9-.3 2.9 1.1a9.8 9.8 0 0 1 5.2 0c2-1.4 2.9-1.1 2.9-1.1.6 1.5.2 2.5.1 2.8.7.7 1.1 1.7 1.1 2.8 0 4-2.4 4.8-4.7 5.1.4.3.8 1 .8 2v2.6c0 .3.2.6.8.5A9.2 9.2 0 0 0 12 2.8Z"/>
+                </svg>
+                <span>github.com/pratyushm206</span>
+            </a>
+            <a href="https://www.linkedin.com/in/pratyushm206" target="_blank" rel="noopener noreferrer">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6.5 10v8"/>
+                    <path d="M6.5 6.5v.1"/>
+                    <path d="M11 18v-8"/>
+                    <path d="M11 13.4c0-2.2 1.2-3.6 3.1-3.6 2 0 3.4 1.4 3.4 4V18"/>
+                    <path d="M4 4h16v16H4z"/>
+                </svg>
+                <span>LinkedIn</span>
+            </a>
+            <a href="https://github.com/pratyushm206/AI-Resume-Analyzer" target="_blank" rel="noopener noreferrer">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M8 7H5a2 2 0 0 0-2 2v10h18V9a2 2 0 0 0-2-2h-3"/>
+                    <path d="M8 7a4 4 0 0 1 8 0"/>
+                    <path d="M9 13h6"/>
+                </svg>
+                <span>View source</span>
+            </a>
+        </nav>
+    </div>
+    <div class="footer-bottom">
+        <p>© 2026 Designed &amp; coded by <strong>Pratyush Mishra</strong></p>
+    </div>
+</footer>
+""")

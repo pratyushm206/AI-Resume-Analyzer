@@ -1,8 +1,10 @@
 import re
 import time
+from pathlib import Path
 
 import fitz
 import streamlit as st
+from PIL import Image
 
 from report_generator import generate_pdf_report
 import doc_export
@@ -11,9 +13,12 @@ from format_checker import analyze_resume_format
 from frontend.styles import load_css
 from frontend import components
 
+LOGO_PATH = Path(__file__).resolve().parent / "frontend" / "assets" / "logo.png"
+PAGE_ICON = Image.open(LOGO_PATH) if LOGO_PATH.exists() else "📄"
+
 st.set_page_config(
     page_title="AI Resume Analyzer",
-    page_icon="📄",
+    page_icon=PAGE_ICON,
     layout="wide"
 )
 
@@ -453,3 +458,5 @@ if "analysis" in st.session_state:
                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     use_container_width=True,
                 )
+
+components.site_footer()
