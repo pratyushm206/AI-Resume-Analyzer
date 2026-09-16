@@ -1,3 +1,14 @@
+---
+title: AI Resume Analyzer
+emoji: 📄
+colorFrom: yellow
+colorTo: gray
+sdk: streamlit
+sdk_version: "1.38.0"
+app_file: app.py
+pinned: false
+---
+
 # 📄 AI Resume Analyzer
 
 An AI-powered ATS Resume Analyzer that scores a resume against a Job Description using a **deterministic, explainable hybrid scoring engine**, then layers **Google Gemini** on top for qualitative feedback — matching/missing skills, suggestions, and a recruiter-style verdict. It can also generate a tailored cover letter and rewrite the resume itself for a specific JD.
