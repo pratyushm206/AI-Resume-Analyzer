@@ -40,7 +40,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"]{
         var(--bg);
 }
 
-div[data-testid="stDecoration"], #MainMenu, footer, header{ display:none; }
+div[data-testid="stDecoration"], #MainMenu, footer:not(.site-footer), header{ display:none; }
 .block-container{
     max-width:1180px;
     padding-top:3.5rem;
