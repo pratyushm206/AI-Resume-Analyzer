@@ -1,12 +1,10 @@
-import os
-
-from dotenv import load_dotenv
 from google import genai
+from llm_utils import run_with_timeout
+from secrets_config import get_secret
 
-load_dotenv()
 
 client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY")
+    api_key=get_secret("GEMINI_API_KEY")
 )
 
 
@@ -52,9 +50,11 @@ def generate_tailored_resume(resume_text: str, job_description: str, missing_ski
     - Output ONLY the rewritten resume text.
     """
 
-    response = client.models.generate_content(
-        model="models/gemini-3.5-flash",
-        contents=prompt,
+    response = run_with_timeout(
+        lambda: client.models.generate_content(
+            model="models/gemini-3.5-flash",
+            contents=prompt,
+        )
     )
 
-    return response.text.strip()
+    return (response.text or "").strip()

@@ -6,7 +6,7 @@ venv/
 __pycache__/
 *.pyc
 # Streamlit
-.streamlit/
+.streamlit/secrets.toml
 # VS Code
 .vscode/
 # OS Files
@@ -14,3 +14,4 @@ __pycache__/
 Thumbs.db
 test_ats.py
 Test_Resume.pdf
+unrecognized_skills.log

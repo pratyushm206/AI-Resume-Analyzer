@@ -38,6 +38,7 @@ Returns:
 """
 
 import re
+from pathlib import Path
 from typing import Dict, List, Optional, Set
 
 # ---------------------------------------------------------------------------
@@ -73,7 +74,9 @@ SKILL_VOCAB: Dict[str, List[str]] = {
     "TypeScript": ["typescript", "ts"],
     "HTML": ["html", "html5"],
     "CSS": ["css", "css3"],
+    "Tailwind CSS": ["tailwind css", "tailwindcss", "tailwind"],
     "React.js": ["react.js", "react js", "reactjs", "react"],
+    "Next.js": ["next.js", "next js", "nextjs"],
     "Node.js": ["node.js", "node js", "nodejs", "node"],
     "Express.js": ["express.js", "express js", "expressjs", "express"],
     "Spring Boot": ["spring boot", "springboot", "spring"],
@@ -83,7 +86,9 @@ SKILL_VOCAB: Dict[str, List[str]] = {
     "PostgreSQL": ["postgresql", "postgres"],
     "MySQL": ["mysql"],
     "MongoDB": ["mongodb", "mongo"],
+    "Mongoose": ["mongoose"],
     "SQL": ["sql"],
+    "Prisma ORM": ["prisma orm", "prisma"],
     "REST API Design": ["rest api", "restful api", "rest apis", "restful apis", "rest"],
     "GraphQL": ["graphql"],
     "AWS Cloud Foundations": ["aws", "amazon web services"],
@@ -105,6 +110,9 @@ SKILL_VOCAB: Dict[str, List[str]] = {
         "unit testing", "integration testing", "software testing",
         "junit", "jest", "mocha", "pytest",
     ],
+    "Responsive Design": ["responsive design", "responsive ui", "responsive implementation"],
+    "Accessibility": ["accessibility", "a11y", "wcag"],
+    "API Integration": ["api integration", "api integrations"],
     "JWT Authentication": ["jwt", "json web token"],
     "OAuth": ["oauth"],
     "Data Structures & Algorithms": [
@@ -154,6 +162,11 @@ _STOPWORDS = {
     "also", "we're", "we", "you'll", "you're",
 }
 
+_UNRECOGNIZED_LOG = Path(__file__).with_name("unrecognized_skills.log")
+_PLAUSIBLE_SKILL_PATTERN = re.compile(
+    r"\b(?:[A-Z][A-Za-z0-9+#.]{1,}(?:\.js)?|[A-Za-z]+(?:JS|SQL|DB|API|ORM|CSS|HTML|CD))\b"
+)
+
 
 def _alias_pattern(alias: str) -> re.Pattern:
     """Build a case-insensitive, word-boundary-safe regex for an alias."""
@@ -180,6 +193,52 @@ def extract_terms(text: str, vocab: Optional[Dict[str, List[str]]] = None) -> Se
         if any(p.search(text) for p in patterns):
             found.add(canonical)
     return found
+
+
+def _log_unrecognized_jd_terms(job_description: str, recognized_terms: Set[str]) -> None:
+    """Append plausible-but-unrecognized JD skill terms for later vocabulary growth."""
+    if not job_description:
+        return
+
+    recognized_aliases = {
+        alias.lower()
+        for aliases in FULL_VOCAB.values()
+        for alias in aliases
+    } | {term.lower() for term in recognized_terms}
+
+    candidates = set()
+    for match in _PLAUSIBLE_SKILL_PATTERN.finditer(job_description):
+        term = match.group(0).strip(".,;:()[]{}")
+        if len(term) < 2 or term.lower() in _STOPWORDS:
+            continue
+        if term.lower() in recognized_aliases:
+            continue
+        candidates.add(term)
+
+    if not candidates:
+        return
+
+    existing = set()
+    if _UNRECOGNIZED_LOG.exists():
+        try:
+            existing = {
+                line.strip().lower()
+                for line in _UNRECOGNIZED_LOG.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            }
+        except OSError:
+            existing = set()
+
+    new_terms = sorted(c for c in candidates if c.lower() not in existing)
+    if not new_terms:
+        return
+
+    try:
+        with _UNRECOGNIZED_LOG.open("a", encoding="utf-8") as handle:
+            for term in new_terms:
+                handle.write(f"{term}\n")
+    except OSError:
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -304,6 +363,7 @@ def analyze_ats_match(
 ) -> dict:
     resume_skills = extract_terms(resume_text)
     jd_skills = extract_terms(job_description)
+    _log_unrecognized_jd_terms(job_description, jd_skills)
 
     matched_skills = sorted(jd_skills & resume_skills)
     missing_skills = sorted(jd_skills - resume_skills)

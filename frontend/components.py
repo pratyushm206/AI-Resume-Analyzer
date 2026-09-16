@@ -4,187 +4,166 @@ import streamlit as st
 
 
 def render_html(html: str):
-    """
-    Strip leading whitespace from every line before passing to st.markdown.
-
-    Streamlit's markdown renderer treats any line indented 4+ spaces as a
-    code block. textwrap.dedent() only removes whitespace that's common to
-    ALL lines, so if outer tags sit at column 0 while nested tags are
-    indented, dedent() does nothing and the nested HTML renders as raw text.
-    Stripping per-line avoids that entirely.
-    """
     lines = [line.strip() for line in html.strip("\n").split("\n")]
     st.markdown("\n".join(lines), unsafe_allow_html=True)
 
 
+def _score_status(score):
+    if score >= 75:
+        return "Strong match"
+    if score >= 45:
+        return "Partial match"
+    return "Weak match"
+
+
+def _tier_class(score):
+    if score > 70:
+        return "fill-good"
+    if score >= 40:
+        return "fill-warn"
+    return "fill-bad"
+
+
+def score_gauge_html(score, label=None, note=None, display_value=None, preview=False):
+    score = max(0.0, min(100.0, float(score or 0.0)))
+    label = html_lib.escape(str(label or _score_status(score)))
+    note = html_lib.escape(str(note or "Linear score gauge"))
+    value_html = display_value if display_value is not None else f"{score:.1f}<span>%</span>"
+    preview_class = " gauge-preview" if preview else ""
+    return f"""
+<div class="gauge-wrap{preview_class}" style="--score-pct:{score:.1f};">
+    <svg viewBox="0 0 200 125" width="100%" style="max-width:230px; overflow:visible;">
+        <path d="M15,115 A85,85 0 0 1 185,115" pathLength="100" fill="none" stroke="var(--line)" stroke-width="11" stroke-linecap="round"/>
+        <path class="g-arc-fg" d="M15,115 A85,85 0 0 1 185,115" pathLength="100" fill="none" stroke="var(--brass)" stroke-width="11" stroke-linecap="round"/>
+        <g stroke="var(--line-strong)" stroke-width="2">
+            <line x1="15" y1="115" x2="5" y2="115"/>
+            <line x1="39.9" y1="54.9" x2="32.8" y2="47.8"/>
+            <line x1="100" y1="30" x2="100" y2="20"/>
+            <line x1="160.1" y1="54.9" x2="167.2" y2="47.8"/>
+            <line x1="185" y1="115" x2="195" y2="115"/>
+        </g>
+        <g fill="var(--ink-faint)" font-family="IBM Plex Mono, monospace" font-size="8">
+            <text x="12" y="104" text-anchor="middle">0</text>
+            <text x="36" y="45" text-anchor="middle">25</text>
+            <text x="100" y="14" text-anchor="middle">50</text>
+            <text x="164" y="45" text-anchor="middle">75</text>
+            <text x="188" y="104" text-anchor="middle">100</text>
+        </g>
+        <line class="g-needle" x1="100" y1="115" x2="100" y2="38" stroke="var(--ink)" stroke-width="2.5"/>
+        <circle cx="100" cy="115" r="5" fill="var(--ink)"/>
+    </svg>
+    <div class="g-num">{value_html}</div>
+    <div class="g-tag">{label}</div>
+    <div class="verdict-line">{note}</div>
+</div>
+"""
+
+
 def hero():
-    render_html("""
-<div class="hero">
-    <span class="hero-eyebrow">// ATS_SCAN_ENGINE</span>
-    <div class="hero-title">
-        AI Resume Analyzer
+    render_html(f"""
+<div class="site-top">
+    <div class="mark">
+        <span class="mark-dot"></span>
+        <span>Resume Analyzer</span>
+        <span class="mark-sub">/ scan engine</span>
     </div>
-    <div class="hero-subtitle">
-        AI-powered ATS resume screening using
-        <strong>Sentence Transformers</strong> and
-        <strong>Google Gemini</strong>.
-        Upload your resume, drop in a job description, and get a match
-        score, a skill-level diff, and recruiter-style feedback &mdash;
-        the way an ATS actually reads you.
+</div>
+<section class="hero">
+    <div>
+        <h1 class="hero-h">A resume score you can actually explain.</h1>
+        <p class="lede">Five weighted signals — <b>semantic relevance, skill match, keyword coverage, experience, and section strength</b> — combine into one deterministic number. Gemini writes prose around the result, never the score itself.</p>
+        <div class="readouts">
+            <div class="r"><div class="n">5</div><div class="l">signals scored</div></div>
+            <div class="r"><div class="n">3</div><div class="l">export formats</div></div>
+            <div class="r"><div class="n">0</div><div class="l">AI influence on score</div></div>
+        </div>
+    </div>
+    <div class="gauge-card">
+        {score_gauge_html(53.8, "Know your score", "Calculated from 5 weighted signals", display_value="?", preview=True)}
+    </div>
+</section>
+""")
+
+
+def workflow_strip():
+    return None
+
+
+def input_helper_panel():
+    render_html("""
+<div class="panel">
+    <p class="side-title">Calibration notes</p>
+    <p class="side-sub">What actually moves the score.</p>
+    <ul class="cal-list">
+        <li><span class="cal-idx">i</span><div><p class="cal-t">Use a text PDF</p><p class="cal-d">Export from Word, Docs, Canva, or LaTeX. A scanned image cannot be parsed for meaningful scoring.</p></div></li>
+        <li><span class="cal-idx">ii</span><div><p class="cal-t">Paste the full JD</p><p class="cal-d">Responsibilities and requirements, not just the title, drive skill and keyword coverage.</p></div></li>
+        <li><span class="cal-idx">iii</span><div><p class="cal-t">Include seniority</p><p class="cal-d">Years of experience and role level let the engine explain the experience component correctly.</p></div></li>
+    </ul>
+</div>
+""")
+
+
+def jd_quality_panel(stats: dict):
+    words = int(stats.get("words", 0) or 0)
+    if words >= 120:
+        label, hint, on = "Detailed", "Enough context for a meaningful comparison.", 5
+    elif words >= 40:
+        label, hint, on = "Usable", "Add responsibilities or requirements for sharper results.", 3
+    else:
+        label, hint, on = "Needs detail", "Paste a fuller JD before analyzing.", 1
+    ticks = "".join('<span class="on"></span>' if i < on else "<span></span>" for i in range(5))
+    render_html(f"""
+<div class="panel">
+    <div class="signal-box" style="border-top:0; padding-top:0;">
+        <div class="signal-row"><span class="lbl">Signal strength</span><span class="val">{label}</span></div>
+        <div class="tickbar">{ticks}</div>
+        <p class="signal-note"><b style="color:var(--ink-dim)">{words} words</b> extracted from the JD. {html_lib.escape(hint)}</p>
     </div>
 </div>
 """)
 
 
-def _score_status(score):
-    if score >= 75:
-        return "STRONG MATCH", "status-strong"
-    if score >= 45:
-        return "PARTIAL MATCH", "status-partial"
-    return "WEAK MATCH", "status-weak"
+def analysis_overview(filename, resume_stats, jd_stats, match_label):
+    analysis_hero(filename, resume_stats, jd_stats, match_label, 0, 0, 0)
+
+
+def analysis_hero(filename, resume_stats, jd_stats, match_label, score, matching_count, missing_count):
+    safe_filename = html_lib.escape(filename)
+    resume_words = int(resume_stats.get("words", 0) or 0)
+    jd_words = int(jd_stats.get("words", 0) or 0)
+    read_time = int(resume_stats.get("estimated_read_minutes", 0) or 0)
+    total = matching_count + missing_count
+    render_html(f"""
+<section class="analysis-hero">
+    {score_gauge_html(score, match_label, safe_filename)}
+    <div class="readout-grid">
+        <div class="readout"><div class="n">{resume_words}</div><div class="l">resume words</div></div>
+        <div class="readout"><div class="n">{jd_words}</div><div class="l">JD words</div></div>
+        <div class="readout"><div class="n">{read_time} min</div><div class="l">read time</div></div>
+        <div class="readout wide">
+            <div><span class="n good" style="font-size:20px; display:inline;">{matching_count}</span> <span class="l" style="display:inline;">matching skills</span></div>
+            <div><span class="n bad" style="font-size:20px; display:inline;">{missing_count}</span> <span class="l" style="display:inline;">missing skills</span></div>
+            <div><span class="l">total considered: {total}</span></div>
+        </div>
+    </div>
+</section>
+""")
 
 
 def score_dashboard(score, matching_count, missing_count):
-
-    left, right = st.columns([2.2, 1])
-
-    with left:
-        status_label, status_class = _score_status(score)
-        deg = max(0.0, min(100.0, score)) * 3.6
-
-        render_html(f"""
-<div class="score-card">
-    <div class="gauge-wrap">
-        <div class="gauge-ring" style="background: conic-gradient(var(--accent) {deg}deg, var(--border) 0deg);">
-            <div class="gauge-inner">
-                <div class="gauge-number">{score:.1f}<span class="gauge-percent">%</span></div>
-            </div>
-        </div>
-    </div>
-    <div>
-        <div class="score-label">ATS MATCH SCORE</div>
-        <div class="score-status {status_class}">{status_label}</div>
-    </div>
-</div>
-""")
-
-    with right:
-        render_html(f"""
-<div class="small-card">
-    <div class="small-title">Matching</div>
-    <div class="small-value green">{matching_count}</div>
-</div>
-<div class="small-card">
-    <div class="small-title">Missing</div>
-    <div class="small-value red">{missing_count}</div>
-</div>
-""")
+    analysis_hero("Resume", {}, {}, _score_status(score), score, matching_count, missing_count)
 
 
-def skill_section(title, skills, positive=True):
-
-    marker = "+" if positive else "-"
-    row_class = "plus" if positive else "minus"
-    tag_class = "ok" if positive else "miss"
-    title_class = "tag-ok" if positive else "tag-miss"
-    bracket_label = "OK" if positive else "MISS"
-
-    html = f"""
-<div class="section">
-    <div class="card">
-        <div class="card-title {title_class}">
-            <span class="tag-bracket {tag_class}">{bracket_label}</span>
-            {title}
-        </div>
-"""
-
-    if skills:
-        for skill in skills:
-            html += f"""
-        <div class="diff-row {row_class}">
-            <span class="diff-marker">{marker}</span>
-            <span class="diff-text">{skill}</span>
-        </div>
-"""
-    else:
-        html += """
-        <p class="card-empty">No data available.</p>
-"""
-
-    html += """
-    </div>
+def meter_row(label, score, weight=None):
+    score = max(0.0, min(100.0, float(score or 0.0)))
+    safe_label = html_lib.escape(str(label))
+    weight_html = f'<span class="driver-weight">{int(weight * 100)}% weight</span>' if weight is not None else ""
+    return f"""
+<div class="driver">
+    <div class="driver-top"><span class="driver-name">{safe_label}{weight_html}</span><span class="driver-val">{score:.1f}%</span></div>
+    <div class="meter"><div class="fill {_tier_class(score)}" style="--pct:{score}%;"></div><div class="ticks"><span></span><span></span><span></span><span></span><span></span></div></div>
 </div>
 """
-
-    render_html(html)
-
-
-def suggestions_card(suggestions):
-
-    html = """
-<div class="section">
-    <div class="card">
-        <div class="card-title tag-tip">
-            <span class="tag-bracket tip">TIP</span>
-            Suggestions
-        </div>
-"""
-
-    if suggestions:
-        for i, suggestion in enumerate(suggestions, start=1):
-            html += f"""
-        <div class="log-line">
-            <span class="log-index">{i:02d}</span>
-            <span class="log-text">{suggestion}</span>
-        </div>
-"""
-    else:
-        html += """
-        <p class="card-empty">No suggestions available.</p>
-"""
-
-    html += """
-    </div>
-</div>
-"""
-
-    render_html(html)
-
-
-def section_breakdown(section_scores: dict):
-
-    if not section_scores:
-        return
-
-    rows = ""
-
-    for name, score in section_scores.items():
-        _, status_class = _score_status(score)
-        rows += f"""
-        <div class="section-bar-row">
-            <div class="section-bar-top">
-                <span class="section-bar-label">{name}</span>
-                <span class="section-bar-value">{score:.0f}%</span>
-            </div>
-            <div class="section-bar-track">
-                <div class="section-bar-fill {status_class}" style="width:{score}%;"></div>
-            </div>
-        </div>
-"""
-
-    html = f"""
-<div class="section">
-    <div class="card">
-        <div class="card-title">
-            <span class="tag-bracket tip">SECTIONS</span>
-            Section Breakdown
-        </div>
-        {rows}
-    </div>
-</div>
-"""
-
-    render_html(html)
 
 
 _BREAKDOWN_LABELS = {
@@ -196,164 +175,160 @@ _BREAKDOWN_LABELS = {
 }
 
 
-def why_score_card(ats_result: dict):
-    """
-    Explainable breakdown behind the overall ATS score: the weighted
-    component scores, the top skills driving the score up/down, and
-    (when the JD specifies one) the required-vs-candidate experience gap.
-
-    Expects the dict shape returned by ats_engine.analyze_ats_match().
-    """
-
+def score_drivers(ats_result: dict):
     breakdown = ats_result.get("breakdown", {})
     weights = ats_result.get("weights", {})
-
-    rows = ""
-    for key, label in _BREAKDOWN_LABELS.items():
-        if key not in breakdown:
-            continue
-        score = breakdown[key]
-        weight_pct = int(weights.get(key, 0) * 100)
-        _, status_class = _score_status(score)
-        rows += f"""
-        <div class="section-bar-row">
-            <div class="section-bar-top">
-                <span class="section-bar-label">{label} <span class="card-empty">({weight_pct}% weight)</span></span>
-                <span class="section-bar-value">{score:.1f}%</span>
-            </div>
-            <div class="section-bar-track">
-                <div class="section-bar-fill {status_class}" style="width:{score}%;"></div>
-            </div>
-        </div>
-"""
-
-    boosters = ats_result.get("score_boosters", [])
-    blockers = ats_result.get("score_blockers", [])
-
-    boosters_html = ""
-    if boosters:
-        for skill in boosters:
-            boosters_html += f"""
-        <div class="diff-row plus">
-            <span class="diff-marker">+</span>
-            <span class="diff-text">{skill}</span>
-        </div>
-"""
-    else:
-        boosters_html = """<p class="card-empty">No matched requirements detected.</p>"""
-
-    blockers_html = ""
-    if blockers:
-        for skill in blockers:
-            blockers_html += f"""
-        <div class="diff-row minus">
-            <span class="diff-marker">-</span>
-            <span class="diff-text">{skill}</span>
-        </div>
-"""
-    else:
-        blockers_html = """<p class="card-empty">No missing requirements detected.</p>"""
-
-    experience = ats_result.get("experience", {})
-    required_years = experience.get("required_years")
-    candidate_years = experience.get("candidate_years")
-
-    experience_line = ""
-    if required_years is not None:
-        candidate_display = (
-            f"{candidate_years:.0f} years found on resume"
-            if candidate_years is not None
-            else "no explicit years-of-experience figure found on resume"
-        )
-        experience_line = f"""
-        <p class="card-empty" style="margin-top:14px;">
-            JD requires {required_years:.0f}+ years of experience &mdash; {candidate_display}.
-        </p>
-"""
-
+    rows = "".join(
+        meter_row(label, breakdown[key], weights.get(key, 0))
+        for key, label in _BREAKDOWN_LABELS.items()
+        if key in breakdown
+    )
+    boosters = "".join(
+        f'<span class="skill-chip good">↑ {html_lib.escape(str(skill))}</span>'
+        for skill in ats_result.get("score_boosters", [])
+    ) or '<p class="card-empty">No matched requirements detected.</p>'
+    blockers = "".join(
+        f'<span class="skill-chip bad">↓ {html_lib.escape(str(skill))}</span>'
+        for skill in ats_result.get("score_blockers", [])
+    ) or '<p class="card-empty">No missing requirements detected.</p>'
     render_html(f"""
-<div class="section">
-    <div class="card">
-        <div class="card-title">
-            <span class="tag-bracket tip">SCORE</span>
-            Why This Score?
-        </div>
-        {rows}
-        {experience_line}
+<div>
+    {rows or '<p class="card-empty">No score-driver data available.</p>'}
+    <div class="chiprow">
+        <div class="chip-col"><h4>Score boosters</h4>{boosters}</div>
+        <div class="chip-col"><h4>Score blockers</h4>{blockers}</div>
     </div>
 </div>
+""")
+
+
+def why_score_card(ats_result: dict):
+    score_drivers(ats_result)
+
+
+def section_breakdown(section_scores: dict):
+    rows = ""
+    for name, score in (section_scores or {}).items():
+        score = max(0.0, min(100.0, float(score or 0.0)))
+        rows += f"""
+<div class="sec-row">
+    <span class="name">{html_lib.escape(str(name))}</span>
+    <div class="meter"><div class="fill {_tier_class(score)}" style="--pct:{score}%;"></div><div class="ticks"><span></span><span></span><span></span><span></span><span></span></div></div>
+    <span class="pct">{score:.0f}%</span>
+</div>
+"""
+    render_html(rows or '<p class="card-empty">No section data available.</p>')
+
+
+def verdict_card(verdict):
+    safe_verdict = html_lib.escape(str(verdict or "No recruiter verdict available."))
+    render_html(f"""
+<div class="verdict-wrap">
+    <div class="card-title">// recruiter verdict</div>
+    <div class="verdict">{safe_verdict}</div>
+</div>
+""")
+
+
+def suggestions_card(suggestions):
+    rows = ""
+    for i, suggestion in enumerate(suggestions or [], start=1):
+        rows += f'<li><span class="si">{i:02d}</span><p>{html_lib.escape(str(suggestion))}</p></li>'
+    if not rows:
+        rows = '<li><span class="si">--</span><p>No suggestions available.</p></li>'
+    render_html(f'<ul class="suggest-list">{rows}</ul>')
+
+
+def skills_diff(matching_skills, missing_skills):
+    html = '<div class="diff-grid">'
+    html += _skill_column("Matching", matching_skills, True)
+    html += _skill_column("Missing", missing_skills, False)
+    html += "</div>"
+    render_html(html)
+
+
+def skill_section(title, skills, positive=True):
+    render_html(_skill_column(title, skills, positive))
+
+
+def _skill_column(title, skills, positive=True):
+    marker = "✓" if positive else "x"
+    col_class = "good" if positive else "bad"
+    html = f'<div class="diff-col {col_class}"><h4>{html_lib.escape(title)} <span class="count">{len(skills or [])}</span></h4>'
+    if skills:
+        for skill in skills:
+            html += f'<div class="diff-item"><span class="m">{marker}</span>{html_lib.escape(str(skill))}</div>'
+    else:
+        html += '<p class="card-empty">No data available.</p>'
+    html += "</div>"
+    return html
+
+
+def sanity_note(matching_count, missing_count):
+    total = matching_count + missing_count
+    render_html(f'<p class="card-empty" style="margin-top:10px;">Sanity check: {matching_count} matching + {missing_count} missing = {total} total skills considered.</p>')
+
+
+def format_checker_card(format_result: dict):
+    score = float(format_result.get("format_score", 0.0) or 0.0)
+    label = html_lib.escape(str(format_result.get("label") or "data unavailable"))
+    rows = ""
+    for item in format_result.get("checks", []):
+        passed = bool(item.get("passed"))
+        marker = "✓" if passed else "!"
+        state = "pass" if passed else "warn"
+        name = html_lib.escape(str(item.get("name") or "data unavailable"))
+        explanation = html_lib.escape(str(item.get("explanation") or "data unavailable"))
+        earned = html_lib.escape(str(item.get("earned", "data unavailable")))
+        points = html_lib.escape(str(item.get("points", "data unavailable")))
+        rows += f'<li><span class="mk {state}">{marker}</span><div><p class="ct">{name} <span class="card-empty">({earned}/{points})</span></p><p class="cd">{explanation}</p></div></li>'
+    if not rows:
+        rows = '<li><span class="mk warn">!</span><div><p class="ct">data unavailable</p><p class="cd">data unavailable</p></div></li>'
+    render_html(f"""
+<div>
+    <div class="parse-score"><span class="l">{label}</span><span class="v">{score:.1f}%</span></div>
+    <div class="meter"><div class="fill {_tier_class(score)}" style="--pct:{score}%;"></div><div class="ticks"><span></span><span></span><span></span><span></span><span></span></div></div>
+    <ul class="check-list">{rows}</ul>
+</div>
+""")
+
+
+def tailored_comparison_card(comparison: dict):
+    before = comparison.get("before", {})
+    after = comparison.get("after", {})
+    delta = float(comparison.get("score_delta", 0.0) or 0.0)
+    before_score = float(before.get("overall_score", 0.0) or 0.0)
+    after_score = float(after.get("overall_score", 0.0) or 0.0)
+    rows = ""
+    for key, label in _BREAKDOWN_LABELS.items():
+        value = comparison.get("component_deltas", {}).get(key, 0.0)
+        rows += f'<div class="diff-item"><span class="m">{value:+.1f}</span>{html_lib.escape(label)}</div>'
+    warnings = "".join(
+        f'<div class="diff-item"><span class="m">!</span>{html_lib.escape(str(warning))}</div>'
+        for warning in comparison.get("warnings", [])
+    )
+    render_html(f"""
 <div class="section">
-    <div style="display:flex; gap:24px; flex-wrap:wrap;">
-        <div class="card" style="flex:1; min-width:260px;">
-            <div class="card-title tag-ok">
-                <span class="tag-bracket ok">OK</span>
-                Score Boosters
-            </div>
-            {boosters_html}
-        </div>
-        <div class="card" style="flex:1; min-width:260px;">
-            <div class="card-title tag-miss">
-                <span class="tag-bracket miss">MISS</span>
-                Score Blockers
-            </div>
-            {blockers_html}
-        </div>
+    <div class="comparison-grid">
+        <div><span>Original</span><strong>{before_score:.1f}%</strong></div>
+        <div><span>Tailored</span><strong>{after_score:.1f}%</strong></div>
+        <div><span>Change</span><strong>{delta:+.1f}</strong></div>
     </div>
+    <div class="diff-col good">{rows}</div>
+    <div class="diff-col bad">{warnings}</div>
 </div>
 """)
 
 
 def cover_letter_card(text: str):
-
     safe_text = html_lib.escape(text).replace("\n", "<br>")
-
-    render_html(f"""
-<div class="section">
-    <div class="card">
-        <div class="card-title tag-verdict">
-            <span class="tag-bracket verdict">LETTER</span>
-            Cover Letter
-        </div>
-        <div class="cover-letter-text">
-            {safe_text}
-        </div>
-    </div>
-</div>
-""")
+    render_html(f'<div class="section"><div class="card-title">// cover letter</div><div class="cover-letter-text">{safe_text}</div></div>')
 
 
 def tailored_resume_card(text: str):
-
     safe_text = html_lib.escape(text).replace("\n", "<br>")
-
-    render_html(f"""
-<div class="section">
-    <div class="card">
-        <div class="card-title tag-verdict">
-            <span class="tag-bracket verdict">TAILORED</span>
-            Resume Rewritten for This JD
-        </div>
-        <div class="cover-letter-text">
-            {safe_text}
-        </div>
-    </div>
-</div>
-""")
+    render_html(f'<div class="section"><div class="card-title">// tailored resume</div><div class="cover-letter-text">{safe_text}</div></div>')
 
 
-def verdict_card(verdict):
-    render_html(f"""
-<div class="section">
-    <div class="card">
-        <div class="card-title tag-verdict">
-            <span class="tag-bracket verdict">VERDICT</span>
-            Recruiter Verdict
-        </div>
-        <div class="verdict-wrap">
-            <div class="verdict">
-                {verdict}
-            </div>
-        </div>
-    </div>
-</div>
-""")
+def empty_state(message):
+    render_html(f'<p class="card-empty">{html_lib.escape(message)}</p>')

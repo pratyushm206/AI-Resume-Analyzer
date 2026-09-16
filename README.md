@@ -7,16 +7,22 @@ An AI-powered ATS Resume Analyzer that scores a resume against a Job Description
 ## ✨ Features
 
 - 📄 Upload Resume (PDF)
-- 📝 Paste Job Description
+- 📝 Paste Job Description or upload a text-based JD PDF
+- ⏳ Staged progress feedback while text extraction, JD analysis, skill matching, and result construction run
+- ⏱ Gemini calls have a 45-second timeout guardrail with user-facing retry guidance
 - 🎯 Hybrid ATS Match Score — deterministic and reproducible (same resume + same JD → same score, every time)
 - 🔍 Explainable "Why This Score?" breakdown — semantic relevance, skill match, keyword coverage, experience match, and section relevance, each shown with its weight
 - 📊 Section-wise Resume Scoring (Summary, Education, Projects, Skills, Certifications)
+- 🧾 JD-independent ATS Format/Compatibility Checker for parseability, contact info, sections, dates, file size, page count, tables, images, and text extraction
 - ✅ Matching Skills / ❌ Missing Skills
 - 💡 AI-generated Improvement Suggestions
 - 🧑‍💼 AI-generated Recruiter Verdict
 - ⬇️ Downloadable PDF Analysis Report
 - ✉️ AI-generated Cover Letter
+- 📄 Cover letter export as TXT, PDF, and DOCX
 - 📝 AI Resume Tailoring — rewrites the resume for a specific JD without inventing skills or experience
+- 📈 Before/after ATS comparison for tailored resumes, including component deltas and skill-invention guardrails
+- 🧪 Pytest coverage for scoring, section splitting, document exports, Gemini response parsing, and format checks
 - 💾 Session-persisted results across Streamlit reruns
 - 🖤 Custom dark, terminal-inspired dashboard UI
 
@@ -96,6 +102,8 @@ AI-Resume-Analyzer/
 ├── app.py                     # Streamlit entry point
 ├── ats_engine.py               # Deterministic hybrid ATS scoring engine
 ├── ai_engine.py                 # Sentence-transformers model + cosine similarity (used by ats_engine and resume_sections)
+├── format_checker.py            # JD-independent ATS parseability checker
+├── tailor_compare.py            # Before/after tailored resume comparison
 ├── gemini_engine.py            # Gemini-based qualitative analysis
 ├── cover_letter_engine.py      # Gemini-based cover letter generation
 ├── resume_tailor_engine.py     # Gemini-based resume tailoring
@@ -104,6 +112,8 @@ AI-Resume-Analyzer/
 ├── frontend/
 │   ├── styles.py                # CSS
 │   └── components.py            # UI components
+├── tests/
+├── .streamlit/config.toml
 ├── requirements.txt
 ├── .env.example
 ├── .gitignore
@@ -166,16 +176,31 @@ streamlit run app.py
 
 ---
 
+## 🧪 Running Tests
+
+```bash
+pytest
+```
+
+Tests mock Gemini and the Sentence Transformers model so they do not call external services.
+
+---
+
+## 🚀 Streamlit Community Cloud Deployment
+
+1. Push the repository to GitHub.
+2. Create a new Streamlit Community Cloud app and select `app.py` as the entry point.
+3. Add `GEMINI_API_KEY` in Streamlit Cloud Secrets.
+4. Deploy. Dependencies are installed from `requirements.txt`; no extra system packages are currently required.
+
+The app also supports local development through `.env` with the same `GEMINI_API_KEY` name.
+
+---
+
 ## 🔮 Roadmap
 
-Not yet built — planned next, roughly in priority order:
-
-- ATS compatibility / resume format analysis (formatting, structure, ATS-parseability, independent of any specific JD)
-- PDF/DOCX export for the tailored resume and cover letter (currently `.txt` only)
-- Re-analysis of the tailored resume with a before/after score comparison
-- Expanded skill vocabulary coverage (the curated skill list in `ats_engine.py` grows as new job descriptions surface terms it doesn't yet recognize)
-- Automated tests (`ats_engine.py` scoring, section splitting, PDF report generation, Gemini response parsing)
-- Deployment (Streamlit Cloud or similar)
+- Keep growing the curated skill vocabulary from real JD misses captured in `unrecognized_skills.log`.
+- Add screenshots after the deployed UI is finalized.
 
 ---
 
