@@ -13,6 +13,8 @@ pinned: false
 
 An AI-powered ATS Resume Analyzer that scores a resume against a Job Description using a **deterministic, explainable hybrid scoring engine**, then layers **Google Gemini** on top for qualitative feedback — matching/missing skills, suggestions, and a recruiter-style verdict. It can also generate a tailored cover letter and rewrite the resume itself for a specific JD.
 
+**🔗 Live demo:** [ai-resume-analyzer-pratyushm206.streamlit.app](https://ai-resume-analyzer-pratyushm206.streamlit.app/)
+
 ---
 
 ## ✨ Features
@@ -211,13 +213,32 @@ The app also supports local development through `.env` with the same `GEMINI_API
 ## 🔮 Roadmap
 
 - Keep growing the curated skill vocabulary from real JD misses captured in `unrecognized_skills.log`.
-- Add screenshots after the deployed UI is finalized.
 
 ---
 
 ## 📸 Demo
 
-> Screenshots will be added after the UI is finalized.
+Try it live: **[ai-resume-analyzer-pratyushm206.streamlit.app](https://ai-resume-analyzer-pratyushm206.streamlit.app/)**
+
+### Scan Engine
+
+| Landing / Input | Score, Verdict & Suggestions |
+|---|---|
+| ![Landing page — upload resume and paste JD](screenshots/01-landing.jpg) | ![ATS match score, recruiter verdict, and suggestions](screenshots/02-results-summary.jpg) |
+
+### Explainable Breakdown
+
+| Score Drivers | Section-wise Scoring |
+|---|---|
+| ![Score drivers with weighted signals and boosters/blockers](screenshots/03-score-drivers.jpg) | ![Per-section resume scoring](screenshots/04-sections.jpg) |
+
+| Skills Diff | ATS Format Check |
+|---|---|
+| ![Matching vs missing skills](screenshots/05-skills-diff.jpg) | ![ATS format/compatibility checker](screenshots/06-ats-format.jpg) |
+
+### AI-Generated Cover Letter
+
+![Generated cover letter with TXT/PDF/DOCX export](screenshots/07-cover-letter.jpg)
 
 ---
 
