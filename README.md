@@ -1,13 +1,3 @@
----
-title: AI Resume Analyzer
-emoji: 📄
-colorFrom: yellow
-colorTo: gray
-sdk: streamlit
-sdk_version: "1.38.0"
-app_file: app.py
-pinned: false
----
 
 # 📄 AI Resume Analyzer
 
