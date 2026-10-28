@@ -36,3 +36,24 @@ def test_no_skill_overlap():
 
     assert result["breakdown"]["skill_match"] == 0.0
     assert "Java" in result["missing_skills"]
+
+
+def test_empty_jd_skills_fall_back_to_semantic_relevance(monkeypatch):
+    monkeypatch.setattr(ats_engine, "_semantic_relevance", lambda *_: 42.0)
+    result = ats_engine.analyze_ats_match(
+        "Nurse providing bedside patient care", "Registered nurse caring for patients"
+    )
+
+    assert result["matched_skills"] == []
+    assert result["breakdown"]["skill_match"] == 42.0
+
+
+def test_very_low_semantic_relevance_caps_overall_score(monkeypatch):
+    monkeypatch.setattr(ats_engine, "_semantic_relevance", lambda *_: 9.9)
+    monkeypatch.setattr(ats_engine, "_keyword_coverage", lambda *_: 100.0)
+    result = ats_engine.analyze_ats_match(
+        "SUMMARY SKILLS EDUCATION PROJECTS CERTIFICATIONS", "Unrelated role"
+    )
+
+    assert result["overall_score"] == 25.0
+    assert result["match_label"] == "Very Weak Match"

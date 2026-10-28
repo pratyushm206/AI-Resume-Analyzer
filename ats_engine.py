@@ -352,16 +352,15 @@ def analyze_ats_match(
     matched_skills = sorted(jd_skills & resume_skills)
     missing_skills = sorted(jd_skills - resume_skills)
 
-    # Skill match is scored against what the JD actually asks for.
-    # If the JD doesn't name any vocab-recognized skill, don't punish the
-    # resume for it -- fall back to neutral so the metric doesn't zero out
-    # the whole score on JDs written in unusual language.
+    semantic_relevance = _semantic_relevance(resume_text, job_description)
+
+    # If no recognized skill terms exist, use semantic relevance instead of
+    # treating the skill component as a perfect match by default.
     if jd_skills:
         skill_match = round((len(matched_skills) / len(jd_skills)) * 100, 1)
     else:
-        skill_match = 100.0
+        skill_match = semantic_relevance
 
-    semantic_relevance = _semantic_relevance(resume_text, job_description)
     keyword_coverage = _keyword_coverage(resume_text, job_description)
 
     required_years = _extract_required_years(job_description)
@@ -382,6 +381,8 @@ def analyze_ats_match(
         sum(breakdown[k] * WEIGHTS[k] for k in WEIGHTS), 1
     )
     overall_score = max(0.0, min(100.0, overall_score))
+    if semantic_relevance < 10:
+        overall_score = min(overall_score, 25.0)
 
     return {
         "overall_score": overall_score,
