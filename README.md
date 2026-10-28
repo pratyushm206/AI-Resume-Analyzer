@@ -206,6 +206,8 @@ The app also supports local development through `.env` with the same `GEMINI_API
 
 If Gemini embeddings are unavailable, semantic scoring falls back to term-frequency cosine similarity; that fallback is less capable of recognizing paraphrases.
 
+Semantic embedding scores map raw cosine similarity from `SEMANTIC_FLOOR` (default `0.55`) to `SEMANTIC_CEILING` (default `0.90`) onto 0–100, clipping values outside that range. Run `python scripts/calibrate_semantic.py` to inspect raw and rescaled similarities for the included examples; this script makes real Gemini API calls.
+
 ---
 
 ## 🔮 Roadmap

@@ -10,6 +10,8 @@ from llm_utils import run_with_timeout
 from secrets_config import get_secret
 
 DEFAULT_EMBEDDING_MODEL = "gemini-embedding-001"
+DEFAULT_SEMANTIC_FLOOR = 0.55
+DEFAULT_SEMANTIC_CEILING = 0.90
 
 
 def cosine_similarity(left, right) -> float:
@@ -22,6 +24,15 @@ def cosine_similarity(left, right) -> float:
     if not denom:
         return 0.0
     return float(np.dot(a, b) / denom)
+
+
+def rescale_semantic_similarity(similarity: float) -> float:
+    """Map raw embedding cosine similarity to a clipped 0–100 score."""
+    floor = float(os.getenv("SEMANTIC_FLOOR", DEFAULT_SEMANTIC_FLOOR))
+    ceiling = float(os.getenv("SEMANTIC_CEILING", DEFAULT_SEMANTIC_CEILING))
+    if ceiling <= floor:
+        raise ValueError("SEMANTIC_CEILING must be greater than SEMANTIC_FLOOR")
+    return max(0.0, min(1.0, (float(similarity) - floor) / (ceiling - floor))) * 100
 
 
 def _term_frequency_cosine(left: str, right: str) -> float:
@@ -68,6 +79,7 @@ def calculate_match_score(resume_text, job_description):
     try:
         resume_embedding, jd_embedding = embed_texts([resume_text, job_description])
         similarity = cosine_similarity(resume_embedding, jd_embedding)
+        return round(rescale_semantic_similarity(similarity), 2)
     except Exception:
         similarity = _term_frequency_cosine(resume_text, job_description)
     return round(max(0.0, min(1.0, similarity)) * 100, 2)

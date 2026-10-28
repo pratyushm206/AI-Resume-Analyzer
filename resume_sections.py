@@ -1,6 +1,6 @@
 import re
 
-from ai_engine import _term_frequency_cosine, cosine_similarity, embed_texts
+from ai_engine import _term_frequency_cosine, cosine_similarity, embed_texts, rescale_semantic_similarity
 
 # Heading name -> regex that matches common variants of that heading.
 # Matched against short lines only, so body text won't accidentally trigger it.
@@ -62,7 +62,7 @@ def score_sections(sections: dict, job_description: str) -> dict:
         vectors = embed_texts([text for _, text in valid_sections] + [job_description])
         jd_vector = vectors[-1]
         return {
-            name: round(max(0.0, min(100.0, cosine_similarity(vector, jd_vector) * 100)), 2)
+            name: round(rescale_semantic_similarity(cosine_similarity(vector, jd_vector)), 2)
             for (name, _), vector in zip(valid_sections, vectors[:-1])
         }
     except Exception:

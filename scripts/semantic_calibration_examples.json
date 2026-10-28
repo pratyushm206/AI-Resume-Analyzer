@@ -1,0 +1,22 @@
+[
+  {
+    "text_a": "Python backend developer with experience building REST APIs, PostgreSQL services, and cloud deployed applications.",
+    "text_b": "We are seeking a Python backend engineer to design REST APIs, work with PostgreSQL, and deploy services to the cloud.",
+    "label": "matching resume and JD"
+  },
+  {
+    "text_a": "Python backend developer with experience building REST APIs, PostgreSQL services, and cloud deployed applications.",
+    "text_b": "Seeking a registered nurse to provide bedside patient care, administer medication, and coordinate clinical treatment.",
+    "label": "unrelated resume and nurse JD"
+  },
+  {
+    "text_a": "python backend developer",
+    "text_b": "chef who bakes bread",
+    "label": "unrelated short phrases"
+  },
+  {
+    "text_a": "Python backend developer with experience building REST APIs, PostgreSQL services, and cloud deployed applications.",
+    "text_b": "Python backend developer with experience building REST APIs, PostgreSQL services, and cloud deployed applications.",
+    "label": "identical text"
+  }
+]
