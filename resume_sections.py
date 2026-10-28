@@ -1,6 +1,6 @@
 import re
 
-from ai_engine import calculate_match_score
+from ai_engine import _term_frequency_cosine, cosine_similarity, embed_texts
 
 # Heading name -> regex that matches common variants of that heading.
 # Matched against short lines only, so body text won't accidentally trigger it.
@@ -55,18 +55,18 @@ def score_sections(sections: dict, job_description: str) -> dict:
     individually (instead of just the whole resume) so the UI can show
     where a candidate is strong or weak, not just one aggregate number.
     """
-    scores = {}
-
-    for name, text in sections.items():
-        if not text.strip():
-            continue
-        try:
-            score = float(calculate_match_score(text, job_description))
-            score = max(0.0, min(100.0, score))
-            scores[name] = score
-        except Exception:
-            # If scoring a tiny/odd section fails, skip it rather than
-            # breaking the whole analysis.
-            continue
-
-    return scores
+    valid_sections = [(name, text) for name, text in sections.items() if text.strip()]
+    if not valid_sections:
+        return {}
+    try:
+        vectors = embed_texts([text for _, text in valid_sections] + [job_description])
+        jd_vector = vectors[-1]
+        return {
+            name: round(max(0.0, min(100.0, cosine_similarity(vector, jd_vector) * 100)), 2)
+            for (name, _), vector in zip(valid_sections, vectors[:-1])
+        }
+    except Exception:
+        return {
+            name: round(max(0.0, min(100.0, _term_frequency_cosine(text, job_description) * 100)), 2)
+            for name, text in valid_sections
+        }

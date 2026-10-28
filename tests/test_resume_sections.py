@@ -1,4 +1,4 @@
-from resume_sections import split_resume_sections
+from resume_sections import score_sections, split_resume_sections
 
 
 def test_split_resume_sections_basic():
@@ -32,3 +32,18 @@ B.Tech"""
     assert "Full stack" in sections["Summary"]
     assert "React" in sections["Skills"]
     assert "B.Tech" in sections["Education"]
+
+
+def test_score_sections_batches_texts_and_jd(monkeypatch):
+    import resume_sections
+
+    calls = []
+    monkeypatch.setattr(resume_sections, "embed_texts", lambda texts: (
+        calls.append(list(texts)) or [[1.0, 0.0], [0.0, 1.0], [1.0, 0.0]]
+    ))
+
+    scores = score_sections({"Summary": "Python developer", "Skills": "SQL"}, "Python role")
+
+    assert len(calls) == 1
+    assert calls[0] == ["Python developer", "SQL", "Python role"]
+    assert scores == {"Summary": 100.0, "Skills": 0.0}

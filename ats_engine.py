@@ -3,8 +3,7 @@ ats_engine.py
 
 Deterministic, explainable ATS scoring engine.
 
-This is intentionally separate from ai_engine.py (which stays untouched,
-so app.py keeps working on the old path while this is developed and tested).
+Semantic relevance uses Gemini embeddings with a deterministic local fallback.
 
 Design principle: the numeric score must be REPRODUCIBLE. Same resume +
 same JD -> same score, every time. Gemini is great for interpretation and
@@ -41,19 +40,7 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
-# ---------------------------------------------------------------------------
-# Reuse the already-loaded sentence-transformers model from ai_engine.py
-# instead of loading a second copy of the model into memory.
-# ---------------------------------------------------------------------------
-from sklearn.metrics.pairwise import cosine_similarity
-
-try:
-    from ai_engine import model as _semantic_model
-except ImportError:
-    # Allows this file to still be run/tested even if ai_engine.py is
-    # unavailable in the current working directory.
-    from sentence_transformers import SentenceTransformer
-    _semantic_model = SentenceTransformer("all-MiniLM-L6-v2")
+from ai_engine import calculate_match_score
 
 
 # ---------------------------------------------------------------------------
@@ -283,13 +270,10 @@ def _experience_match_score(required_years, candidate_years) -> float:
 
 
 # ---------------------------------------------------------------------------
-# Semantic relevance (reuses the same model/approach as ai_engine.py)
+# Semantic relevance (Gemini embeddings with term-frequency fallback)
 # ---------------------------------------------------------------------------
 def _semantic_relevance(resume_text: str, job_description: str) -> float:
-    resume_embedding = _semantic_model.encode([resume_text])
-    jd_embedding = _semantic_model.encode([job_description])
-    similarity = cosine_similarity(resume_embedding, jd_embedding)[0][0]
-    return round(max(0.0, min(1.0, float(similarity))) * 100, 1)
+    return round(calculate_match_score(resume_text, job_description), 1)
 
 
 # ---------------------------------------------------------------------------

@@ -42,15 +42,14 @@ A deterministic scoring pipeline — this is what actually produces the numeric 
 
 | Component | Weight | Method |
 |---|---|---|
-| Semantic Relevance | 30% | Sentence Transformers embeddings + cosine similarity |
+| Semantic Relevance | 30% | Gemini embeddings + cosine similarity, with local term-frequency fallback |
 | Skill Match | 30% | Curated skill vocabulary with alias/variant matching (e.g. "React", "React.js", "reactjs" → one canonical skill) |
 | Keyword Coverage | 15% | Frequency-ranked JD keyword overlap |
 | Experience Match | 15% | Regex-based extraction of required vs. candidate years of experience |
 | Section Relevance | 10% | Per-section resume scoring (via `resume_sections.py`) |
 
 ### AI / NLP
-- Sentence Transformers (`all-MiniLM-L6-v2`)
-- Google Gemini API — matching/missing skills, suggestions, recruiter verdict, cover letter generation, resume tailoring
+- Google Gemini embeddings (`gemini-embedding-001`) and Gemini API — semantic relevance, matching/missing skills, suggestions, recruiter verdict, cover letter generation, resume tailoring
 
 ### Backend
 - Python
@@ -104,7 +103,7 @@ AI-Resume-Analyzer/
 │
 ├── app.py                     # Streamlit entry point
 ├── ats_engine.py               # Deterministic hybrid ATS scoring engine
-├── ai_engine.py                 # Sentence-transformers model + cosine similarity (used by ats_engine and resume_sections)
+├── ai_engine.py                 # Gemini embeddings + local cosine fallback
 ├── format_checker.py            # JD-independent ATS parseability checker
 ├── tailor_compare.py            # Before/after tailored resume comparison
 ├── gemini_engine.py            # Gemini-based qualitative analysis
@@ -185,7 +184,7 @@ streamlit run app.py
 pytest
 ```
 
-Tests mock Gemini and the Sentence Transformers model so they do not call external services.
+Tests mock Gemini so they do not call external services.
 
 ---
 
@@ -197,6 +196,15 @@ Tests mock Gemini and the Sentence Transformers model so they do not call extern
 4. Deploy. Dependencies are installed from `requirements.txt`; no extra system packages are currently required.
 
 The app also supports local development through `.env` with the same `GEMINI_API_KEY` name.
+
+## 🚀 Render Free Deployment
+
+1. Push the repository to GitHub and create a new Render Web Service from it. Render will read `render.yaml` and configure the free Python service.
+2. Set `GEMINI_API_KEY` in the service environment. `GEMINI_EMBEDDING_MODEL` defaults to `gemini-embedding-001` and can be overridden there.
+3. Deploy. The health check is `/_stcore/health`.
+4. To keep the free instance awake, configure an UptimeRobot HTTP monitor for `https://<app>.onrender.com/_stcore/health` every 5 minutes.
+
+If Gemini embeddings are unavailable, semantic scoring falls back to term-frequency cosine similarity; that fallback is less capable of recognizing paraphrases.
 
 ---
 
